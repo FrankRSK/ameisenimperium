@@ -1,0 +1,1037 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Ameisen-Imperium Mobile</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            /* Verhindert Textauswahl auf Touch-Geräten für App-Feeling */
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #2c3e50, #3498db);
+            color: white;
+            /* dvh = dynamic viewport height, wichtig für Android/iOS Adressleisten */
+            height: 100dvh; 
+            width: 100vw;
+            overflow: hidden;
+        }
+        
+        .game-container {
+            display: flex;
+            height: 100%;
+            width: 100%;
+            position: relative;
+        }
+        
+        /* Sidebar Menu */
+        .sidebar {
+            width: 280px;
+            background: rgba(0,0,0,0.6);
+            padding: 15px;
+            backdrop-filter: blur(10px);
+            border-right: 1px solid rgba(255,255,255,0.1);
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            overflow-y: auto;
+            transition: transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
+            position: relative;
+            z-index: 100;
+        }
+        
+        /* Sidebar Toggle Button */
+        .sidebar-toggle {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 1000;
+            background: rgba(0,0,0,0.6);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+
+        .sidebar-toggle:active {
+            transform: scale(0.95);
+            background: rgba(0,0,0,0.9);
+        }
+        
+        .game-title {
+            text-align: center;
+            margin-bottom: 5px;
+            margin-top: 40px; /* Platz für Toggle Button auf Mobile */
+        }
+        
+        .game-title h1 {
+            font-size: 1.2em;
+            margin-bottom: 5px;
+        }
+        
+        .game-title p {
+            font-size: 0.8em;
+            opacity: 0.8;
+        }
+        
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .btn {
+            padding: 12px 15px; /* Größere Touch-Ziele */
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.2s ease;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: white;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        .btn:active {
+            transform: translateY(1px);
+        }
+        
+        .btn-primary {
+            background: linear-gradient(45deg, #e74c3c, #c0392b);
+        }
+        
+        .btn-secondary {
+            background: linear-gradient(45deg, #f39c12, #e67e22);
+        }
+        
+        .speed-control, .stats, .battle-log {
+            background: rgba(255,255,255,0.1);
+            padding: 10px;
+            border-radius: 8px;
+        }
+        
+        .speed-control h4, .stats h4, .battle-log h4 {
+            margin-bottom: 8px;
+            font-size: 0.9em;
+            color: #bdc3c7;
+        }
+        
+        /* Custom Slider für Touch */
+        .speed-slider {
+            width: 100%;
+            height: 20px; /* Höher für Touch */
+            -webkit-appearance: none;
+            background: transparent;
+            margin-top: 5px;
+        }
+        
+        .speed-slider::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 6px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 3px;
+        }
+        
+        .speed-slider::-webkit-slider-thumb {
+            height: 24px;
+            width: 24px;
+            border-radius: 50%;
+            background: #3498db;
+            margin-top: -9px;
+            -webkit-appearance: none;
+            box-shadow: 0 0 5px rgba(0,0,0,0.3);
+        }
+        
+        .stat-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+        
+        .stat-item {
+            text-align: center;
+            font-size: 0.85em;
+            background: rgba(0,0,0,0.2);
+            padding: 5px;
+            border-radius: 4px;
+        }
+
+        .stat-item div:first-child {
+            font-size: 0.8em;
+            opacity: 0.7;
+        }
+
+        .stat-item div:last-child {
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+        
+        .battle-log {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 100px;
+        }
+        
+        .battle-log-content {
+            flex: 1;
+            overflow-y: auto;
+            background: rgba(0,0,0,0.3);
+            padding: 8px;
+            border-radius: 5px;
+            font-size: 0.75em;
+            line-height: 1.4;
+            font-family: monospace;
+        }
+        
+        /* Main Game Area */
+        .main-game {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            padding: 10px;
+            position: relative;
+            height: 100%;
+            overflow: hidden;
+        }
+        
+        .map-container {
+            flex: 1;
+            background: rgba(255,255,255,0.05);
+            border-radius: 10px;
+            padding: 5px;
+            backdrop-filter: blur(5px);
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.2);
+        }
+        
+        .map-grid {
+            flex: 1;
+            display: grid;
+            gap: 1px;
+            background: #2c3e50;
+            border-radius: 4px;
+            padding: 2px;
+            min-height: 0;
+            /* Verhindert Zoom auf Doppel-Tap */
+            touch-action: manipulation;
+        }
+        
+        .region {
+            background: #7f8c8d;
+            border-radius: 1px;
+            position: relative;
+            transition: transform 0.2s ease, background-color 0.3s;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: clamp(8px, 2vw, 14px);
+            min-height: 0;
+            border: 0.5px solid rgba(255,255,255,0.05);
+        }
+        
+        .region.capital {
+            border: 2px solid gold;
+            z-index: 2;
+        }
+        
+        .region.leading-capital {
+            border: 2px solid #fff;
+            box-shadow: 0 0 10px gold;
+            animation: leading-pulse 2s infinite;
+            z-index: 3;
+        }
+        
+        .region.battle {
+            animation: battle-pulse 0.5s infinite alternate;
+            border: 1px solid rgba(255, 0, 0, 0.8);
+            z-index: 5;
+        }
+        
+        .region.conquered {
+            animation: conquest-flash 1s ease-out;
+            z-index: 4;
+        }
+        
+        .region.empire-destroyed {
+            animation: destruction-fade 2s ease-out;
+        }
+        
+        /* Terrain Types with improved colors */
+        .region.plains { background-color: #95a5a6; }
+        .region.mountain { background-color: #5d4037; opacity: 0.9; }
+        .region.water { background-color: #2980b9; opacity: 0.8; }
+        .region.desert { background-color: #e67e22; opacity: 0.7; }
+        .region.forest { background-color: #27ae60; opacity: 0.8; }
+
+        @keyframes battle-pulse {
+            0% { box-shadow: 0 0 2px red; transform: scale(1); }
+            100% { box-shadow: 0 0 10px red; transform: scale(0.95); }
+        }
+        
+        @keyframes conquest-flash {
+            0% { background-color: white; transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+        
+        @keyframes destruction-fade {
+            0% { filter: grayscale(0); }
+            50% { filter: grayscale(1); background-color: #000; }
+            100% { filter: grayscale(0); }
+        }
+        
+        @keyframes leading-pulse {
+            0% { box-shadow: 0 0 5px gold; }
+            50% { box-shadow: 0 0 20px gold; }
+            100% { box-shadow: 0 0 5px gold; }
+        }
+        
+        .notification {
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.9);
+            color: white;
+            padding: 12px 25px;
+            border-radius: 50px;
+            z-index: 2000;
+            text-align: center;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.5);
+            font-size: 14px;
+            width: 90%;
+            max-width: 400px;
+            pointer-events: none;
+            border-left: 5px solid #3498db;
+        }
+
+        .notification.victory { border-left-color: #f1c40f; }
+        .notification.destruction { border-left-color: #e74c3c; }
+        
+        .legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 8px;
+            font-size: 0.7em;
+            padding: 5px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 4px;
+            justify-content: center;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            background: rgba(255,255,255,0.1);
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+        
+        .legend-symbol {
+            width: 10px;
+            height: 10px;
+            border-radius: 2px;
+        }
+        
+        /* Sound Toggle */
+        .sound-toggle {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0,0,0,0.6);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            transition: all 0.2s ease;
+        }
+        
+        .sound-toggle:active {
+            transform: scale(0.95);
+        }
+        
+        .sound-toggle.muted {
+            opacity: 0.6;
+            background: rgba(231, 76, 60, 0.6);
+        }
+
+        /* Initial Popup */
+        .initial-popup {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.85);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 3000;
+            padding: 20px;
+            backdrop-filter: blur(5px);
+        }
+
+        .initial-popup-content {
+            background: linear-gradient(135deg, #34495e, #2c3e50);
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            max-width: 400px;
+            width: 100%;
+            color: white;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .initial-popup-content h2 {
+            margin-bottom: 15px;
+            color: #3498db;
+        }
+
+        .initial-popup-content button {
+            margin-top: 25px;
+            padding: 15px 40px;
+            background: linear-gradient(45deg, #2ecc71, #27ae60);
+            color: white;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            font-size: 1.1em;
+            font-weight: bold;
+            box-shadow: 0 4px 15px rgba(46, 204, 113, 0.4);
+            transition: transform 0.2s;
+            width: 100%;
+        }
+
+        .initial-popup-content button:active {
+            transform: scale(0.98);
+        }
+
+        .impressum-link {
+            margin-top: auto;
+            text-align: center;
+            padding-top: 15px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .impressum-link a {
+            color: rgba(255,255,255,0.6);
+            text-decoration: none;
+            font-size: 0.75em;
+        }
+
+        /* Responsive Logic */
+        @media (max-width: 768px) {
+            .sidebar {
+                position: absolute;
+                top: 0;
+                left: 0;
+                height: 100%;
+                width: 85%;
+                max-width: 300px;
+                transform: translateX(-100%);
+                box-shadow: 5px 0 15px rgba(0,0,0,0.5);
+            }
+            
+            .sidebar.open {
+                transform: translateX(0);
+            }
+            
+            /* Overlay wenn Sidebar offen */
+            .sidebar.open::before {
+                content: '';
+                position: fixed;
+                top: 0;
+                left: 300px; /* Breite der Sidebar */
+                width: 100vw;
+                height: 100vh;
+                background: rgba(0,0,0,0.5);
+                z-index: -1;
+            }
+
+            .main-game {
+                padding: 5px;
+                padding-top: 60px; /* Platz für Buttons oben */
+            }
+            
+            .map-grid {
+                /* Weniger Zellen auf Mobile für bessere Performance/Sichtbarkeit */
+                /* Wird via JS gesetzt, aber CSS Backup ist gut */
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <button class="sidebar-toggle" onclick="toggleSidebar()" aria-label="Menü">☰</button>
+        <button class="sound-toggle" onclick="toggleSound()" id="soundToggle" aria-label="Ton">🔊</button>
+        
+        <div class="sidebar" id="sidebar">
+            <div class="game-title">
+                <h1>🐜 Ameisen-Imperium</h1>
+                <p>Kampf um die Weltherrschaft</p>
+            </div>
+            
+            <div class="controls">
+                <button class="btn btn-primary" onclick="newGameAndStart()">Neue Welt generieren</button>
+                <button class="btn btn-secondary" onclick="togglePause()" id="pauseBtn">Pause</button>
+            </div>
+            
+            <div class="speed-control">
+                <h4>Tempo: <span id="speedValue">1.0x</span></h4>
+                <input type="range" class="speed-slider" min="100" max="2000" value="1000" id="speedSlider">
+            </div>
+            
+            <div class="stats">
+                <h4>Statistik</h4>
+                <div class="stat-grid">
+                    <div class="stat-item">
+                        <div>Runde</div>
+                        <div id="roundCounter">0</div>
+                    </div>
+                    <div class="stat-item">
+                        <div>Imperien</div>
+                        <div id="aliveEmpires">0</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="battle-log">
+                <h4>Logbuch</h4>
+                <div class="battle-log-content" id="battleLog">Warte auf Start...</div>
+            </div>
+
+            <div class="impressum-link">
+                <a href="https://spiele.frank-kemper.com/" target="_blank">Impressum & Datenschutz</a>
+            </div>
+        </div>
+        
+        <div class="main-game">
+            <div class="map-container">
+                <div class="map-grid" id="mapGrid"></div>
+                <div class="legend" id="legendContainer"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="initial-popup" id="initialPopup">
+        <div class="initial-popup-content">
+            <h2>Willkommen!</h2>
+            <p>Lehne dich zurück und beobachte, wie Ameisenvölker um die Vorherrschaft kämpfen.</p>
+            <button onclick="dismissPopupAndStartGame()">Simulation Starten</button>
+        </div>
+    </div>
+
+    <script>
+        class AntEmpireGame {
+            constructor() {
+                // Initial Größe festlegen und beibehalten, um Resize-Bugs zu vermeiden
+                this.mapSize = this.calculateMapSize();
+                this.empires = [];
+                this.regions = [];
+                this.battles = [];
+                this.round = 0;
+                this.isPaused = false;
+                this.gameLoop = null;
+                this.speed = 1000;
+                this.battleLog = [];
+                this.soundEnabled = true;
+                this.leadingEmpire = null;
+                this.battleAnimationDuration = 500;
+                
+                this.colors = [
+                    '#e74c3c', '#3498db', '#2ecc71', '#f39c12', '#9b59b6', '#1abc9c',
+                    '#e67e22', '#34495e', '#f1c40f', '#e91e63', '#8e44ad', '#16a085'
+                ];
+                
+                this.empireNames = [
+                    'Rote Feuerameisen', 'Blaue Wasserameisen', 'Grüne Waldameisen', 'Goldene Wüstenameisen',
+                    'Violette Bergameisen', 'Türkise Eisameisen', 'Orange Sonnenameisen', 'Graue Steinameisen',
+                    'Gelbe Blitzameisen', 'Rosa Blütenameisen', 'Purpur Schattenameisen', 'Aqua Meeresameisen'
+                ];
+                
+                this.terrainTypes = {
+                    plains: { name: 'Flachland', class: 'plains', defenseBonus: 0, attackBonus: 0 },
+                    mountain: { name: 'Berge', class: 'mountain', defenseBonus: 0.3, attackBonus: -0.1 },
+                    water: { name: 'Wasser', class: 'water', defenseBonus: 0.2, attackBonus: -0.2 },
+                    desert: { name: 'Wüste', class: 'desert', defenseBonus: -0.1, attackBonus: 0.1 },
+                    forest: { name: 'Wald', class: 'forest', defenseBonus: 0.2, attackBonus: -0.05 }
+                };
+                
+                this.createAudioContext();
+                this.initializeMap();
+                this.setupEventListeners();
+            }
+            
+            calculateMapSize() {
+                // Angepasste Größen für Handys (kleiner = übersichtlicher)
+                const width = window.innerWidth;
+                const height = window.innerHeight;
+                
+                if (width <= 480) return { width: 12, height: 16 }; // Portrait Handy
+                if (width <= 900 && height <= 500) return { width: 20, height: 12 }; // Landscape Handy
+                if (width <= 768) return { width: 18, height: 18 }; // Tablet
+                return { width: 25, height: 17 }; // Desktop
+            }
+            
+            createAudioContext() {
+                try {
+                    this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                } catch (e) {
+                    console.log('Audio not supported');
+                }
+            }
+            
+            resumeAudio() {
+                if (this.audioContext && this.audioContext.state === 'suspended') {
+                    this.audioContext.resume();
+                }
+            }
+            
+            playSound(frequency, duration = 100, type = 'battle') {
+                if (!this.soundEnabled || !this.audioContext) return;
+                
+                try {
+                    const oscillator = this.audioContext.createOscillator();
+                    const gainNode = this.audioContext.createGain();
+                    
+                    oscillator.connect(gainNode);
+                    gainNode.connect(this.audioContext.destination);
+                    
+                    // Lautstärke angepasst (leiser für Kopfhörer)
+                    const vol = 0.03; 
+
+                    if (type === 'battle') {
+                        oscillator.frequency.setValueAtTime(150, this.audioContext.currentTime);
+                        oscillator.type = 'triangle';
+                        gainNode.gain.setValueAtTime(vol, this.audioContext.currentTime);
+                        gainNode.gain.exponentialRampToValueAtTime(0.001, this.audioContext.currentTime + 0.1);
+                    } else if (type === 'conquest') {
+                        oscillator.frequency.setValueAtTime(300, this.audioContext.currentTime);
+                        oscillator.frequency.exponentialRampToValueAtTime(500, this.audioContext.currentTime + 0.1);
+                        oscillator.type = 'sine';
+                        gainNode.gain.setValueAtTime(vol, this.audioContext.currentTime);
+                    } else if (type === 'destruction') {
+                        oscillator.frequency.setValueAtTime(100, this.audioContext.currentTime);
+                        oscillator.type = 'sawtooth';
+                        gainNode.gain.setValueAtTime(vol, this.audioContext.currentTime);
+                        gainNode.gain.linearRampToValueAtTime(0.001, this.audioContext.currentTime + 0.3);
+                    } else if (type === 'victory') {
+                        // Einfacher Sieges-Jingle
+                        this.playTone(523, 0.1, 0);
+                        this.playTone(659, 0.1, 0.1);
+                        this.playTone(784, 0.2, 0.2);
+                        return;
+                    }
+                    
+                    oscillator.start();
+                    oscillator.stop(this.audioContext.currentTime + duration / 1000);
+                } catch (e) { }
+            }
+
+            playTone(freq, dur, delay) {
+                const osc = this.audioContext.createOscillator();
+                const gain = this.audioContext.createGain();
+                osc.connect(gain);
+                gain.connect(this.audioContext.destination);
+                osc.frequency.value = freq;
+                gain.gain.value = 0.03;
+                osc.start(this.audioContext.currentTime + delay);
+                osc.stop(this.audioContext.currentTime + delay + dur);
+            }
+            
+            initializeMap() {
+                const mapGrid = document.getElementById('mapGrid');
+                mapGrid.innerHTML = '';
+                mapGrid.style.gridTemplateColumns = `repeat(${this.mapSize.width}, 1fr)`;
+                mapGrid.style.gridTemplateRows = `repeat(${this.mapSize.height}, 1fr)`;
+                this.regions = [];
+                
+                for (let y = 0; y < this.mapSize.height; y++) {
+                    for (let x = 0; x < this.mapSize.width; x++) {
+                        const region = document.createElement('div');
+                        region.className = 'region';
+                        region.dataset.index = y * this.mapSize.width + x;
+                        
+                        const terrainType = this.generateTerrain(x, y);
+                        if (terrainType.class) region.classList.add(terrainType.class);
+                        
+                        // Klick-Event für Info (Touch-Friendly)
+                        region.onclick = (e) => this.showRegionInfo(region);
+                        
+                        mapGrid.appendChild(region);
+                        
+                        this.regions.push({
+                            x, y,
+                            index: y * this.mapSize.width + x,
+                            owner: null,
+                            isCapital: false,
+                            terrain: terrainType,
+                            element: region
+                        });
+                    }
+                }
+            }
+
+            updateLegend() {
+                const legendContainer = document.getElementById('legendContainer');
+                if (!legendContainer) return;
+
+                let html = '';
+                // Nur lebende Imperien anzeigen, um Platz auf Handy zu sparen
+                this.empires.filter(e => e.isAlive).forEach(empire => {
+                    html += `
+                        <div class="legend-item">
+                            <div class="legend-symbol" style="background-color: ${empire.color};"></div>
+                            <span>${empire.name.split(' ')[1] || empire.name}</span>
+                        </div>
+                    `;
+                });
+                legendContainer.innerHTML = html;
+            }
+            
+            generateTerrain(x, y) {
+                const noise = Math.sin(x * 0.8 + y * 0.5) * Math.cos(y * 0.9) * 10 % 1; // Simplifizierter Pseudo-Noise
+                if (noise < -0.4) return this.terrainTypes.water;
+                if (noise > 0.5) return this.terrainTypes.mountain;
+                if (noise > 0.3) return this.terrainTypes.forest;
+                if (noise < -0.2) return this.terrainTypes.desert;
+                return this.terrainTypes.plains;
+            }
+            
+            generateEmpires() {
+                const area = this.mapSize.width * this.mapSize.height;
+                // Dynamische Anzahl basierend auf Kartengröße
+                const numEmpires = Math.max(2, Math.min(8, Math.floor(area / 25)));
+                
+                this.empires = [];
+                
+                for (let i = 0; i < numEmpires; i++) {
+                    this.empires.push({
+                        id: i,
+                        name: this.empireNames[i % this.empireNames.length],
+                        color: this.colors[i % this.colors.length],
+                        regions: [],
+                        capital: null,
+                        activeBattles: 0,
+                        isAlive: true,
+                        lastSize: 0
+                    });
+                }
+                
+                this.assignInitialTerritories();
+                this.updateDisplay();
+                this.updateLegend();
+            }
+            
+            assignInitialTerritories() {
+                const availableRegions = [...this.regions];
+                
+                this.empires.forEach(empire => {
+                    if (availableRegions.length === 0) return;
+                    
+                    // Versuche, weit voneinander entfernte Startpunkte zu finden (einfacher Random Ansatz hier)
+                    const randomIndex = Math.floor(Math.random() * availableRegions.length);
+                    const capital = availableRegions.splice(randomIndex, 1)[0];
+                    
+                    capital.owner = empire.id;
+                    capital.isCapital = true;
+                    empire.capital = capital;
+                    empire.regions.push(capital);
+                    empire.lastSize = 1;
+                });
+            }
+            
+            getNeighbors(region) {
+                const neighbors = [];
+                // Nur 4 Richtungen für klarere Fronten auf kleinen Maps
+                const directions = [{dx:0, dy:-1}, {dx:0, dy:1}, {dx:-1, dy:0}, {dx:1, dy:0}];
+                
+                directions.forEach(dir => {
+                    const nx = region.x + dir.dx;
+                    const ny = region.y + dir.dy;
+                    if (nx >= 0 && nx < this.mapSize.width && ny >= 0 && ny < this.mapSize.height) {
+                        neighbors.push(this.regions[ny * this.mapSize.width + nx]);
+                    }
+                });
+                return neighbors;
+            }
+
+            getBorderRegions(empire) {
+                return empire.regions.filter(region => {
+                    const neighbors = this.getNeighbors(region);
+                    return neighbors.some(n => n.owner !== empire.id);
+                });
+            }
+            
+            startBattlePhase() {
+                if (this.isPaused) return;
+                
+                this.round++;
+                this.battles = [];
+                
+                // 1. Expansion
+                this.empires.filter(e => e.isAlive).forEach(empire => {
+                    if(Math.random() > 0.3) { // Nicht jede Runde expandieren
+                        const borderRegions = this.getBorderRegions(empire);
+                        const potentialExpansions = [];
+                        
+                        borderRegions.forEach(r => {
+                            const neighbors = this.getNeighbors(r).filter(n => n.owner === null);
+                            if (neighbors.length) potentialExpansions.push(...neighbors);
+                        });
+
+                        if (potentialExpansions.length) {
+                            const target = potentialExpansions[Math.floor(Math.random() * potentialExpansions.length)];
+                            target.owner = empire.id;
+                            empire.regions.push(target);
+                            this.animateRegion(target, 'conquered', 500);
+                        }
+                    }
+                });
+
+                // 2. Kampf
+                this.empires.filter(e => e.isAlive).forEach(empire => {
+                    const borderRegions = this.getBorderRegions(empire);
+                    // Nur angreifen, wenn Nachbar ein Feind ist
+                    borderRegions.forEach(region => {
+                        const enemies = this.getNeighbors(region).filter(n => n.owner !== null && n.owner !== empire.id);
+                        if (enemies.length && Math.random() < 0.2) { // 20% Chance auf Angriff
+                            const target = enemies[Math.floor(Math.random() * enemies.length)];
+                            this.resolveBattle(empire, target);
+                        }
+                    });
+                });
+                
+                this.updateDisplay();
+                this.checkGameEnd();
+                this.updateLeadingEmpire();
+            }
+            
+            resolveBattle(attacker, targetRegion) {
+                const defender = this.empires[targetRegion.owner];
+                if (!defender || !defender.isAlive) return;
+
+                this.animateRegion(targetRegion, 'battle', this.battleAnimationDuration);
+                this.playSound(null, 100, 'battle');
+
+                // Einfache Logik: Größeres Reich hat Vorteil + Zufall
+                const attackPower = Math.random() + (attacker.regions.length * 0.01);
+                const defensePower = Math.random() + (defender.regions.length * 0.01) + targetRegion.terrain.defenseBonus;
+
+                if (attackPower > defensePower) {
+                    const wasCapital = targetRegion.isCapital;
+                    targetRegion.owner = attacker.id;
+                    targetRegion.isCapital = false;
+                    
+                    // Regionen-Listen aktualisieren
+                    defender.regions = defender.regions.filter(r => r !== targetRegion);
+                    attacker.regions.push(targetRegion);
+
+                    this.animateRegion(targetRegion, 'conquered', 1000);
+                    this.playSound(null, 200, 'conquest');
+                    this.logBattle(`${attacker.name} besiegt ${defender.name}`);
+
+                    if (wasCapital) {
+                        this.destroyEmpire(defender, attacker);
+                    }
+                }
+            }
+            
+            animateRegion(region, className, duration) {
+                if (region.element) {
+                    region.element.classList.add(className);
+                    setTimeout(() => region.element.classList.remove(className), duration);
+                }
+            }
+
+            destroyEmpire(victim, killer) {
+                victim.isAlive = false;
+                this.showNotification(`${victim.name} vernichtet!`, 'destruction');
+                this.playSound(null, 500, 'destruction');
+                
+                victim.regions.forEach(r => {
+                    r.owner = null; // Werden neutral
+                    r.isCapital = false;
+                    this.animateRegion(r, 'empire-destroyed', 1500);
+                });
+                victim.regions = [];
+                this.updateLegend();
+            }
+
+            updateLeadingEmpire() {
+                const alive = this.empires.filter(e => e.isAlive);
+                if (!alive.length) return;
+                
+                const leader = alive.reduce((prev, curr) => (prev.regions.length > curr.regions.length) ? prev : curr);
+                
+                if (this.leadingEmpire !== leader) {
+                    if (this.leadingEmpire && this.leadingEmpire.capital) {
+                        if(this.leadingEmpire.capital.element) this.leadingEmpire.capital.element.classList.remove('leading-capital');
+                    }
+                    this.leadingEmpire = leader;
+                    if (leader.capital && leader.capital.element) {
+                        leader.capital.element.classList.add('leading-capital');
+                    }
+                }
+            }
+            
+            logBattle(msg) {
+                this.battleLog.unshift(`R${this.round}: ${msg}`);
+                if (this.battleLog.length > 20) this.battleLog.pop();
+                const logEl = document.getElementById('battleLog');
+                if (logEl) logEl.innerHTML = this.battleLog.join('<br>');
+            }
+            
+            updateDisplay() {
+                this.regions.forEach(r => {
+                    if (r.owner !== null) {
+                        r.element.style.backgroundColor = this.empires[r.owner].color;
+                        if (r.isCapital) r.element.innerHTML = '🏰';
+                        else r.element.innerHTML = '';
+                    } else {
+                        r.element.style.backgroundColor = ''; // Reset to CSS class color
+                        r.element.innerHTML = '';
+                    }
+                });
+
+                document.getElementById('roundCounter').textContent = this.round;
+                document.getElementById('aliveEmpires').textContent = this.empires.filter(e => e.isAlive).length;
+            }
+            
+            checkGameEnd() {
+                const alive = this.empires.filter(e => e.isAlive);
+                if (alive.length === 1 && !this.isPaused) {
+                    this.isPaused = true;
+                    clearInterval(this.gameLoop);
+                    this.showNotification(`Sieg! ${alive[0].name} herrscht!`, 'victory');
+                    this.playSound(null, 1000, 'victory');
+                }
+            }
+            
+            showNotification(msg, type) {
+                const note = document.createElement('div');
+                note.className = `notification ${type}`;
+                note.textContent = msg;
+                document.body.appendChild(note);
+                setTimeout(() => note.remove(), 3000);
+            }
+            
+            showRegionInfo(region) {
+                let text = region.terrain.name;
+                if (region.owner !== null) {
+                    text += ` | ${this.empires[region.owner].name}`;
+                    if(region.isCapital) text += " (HQ)";
+                } else {
+                    text += " | Neutral";
+                }
+                this.showNotification(text, 'info');
+            }
+            
+            setupEventListeners() {
+                document.getElementById('speedSlider').addEventListener('input', (e) => {
+                    this.speed = 2100 - parseInt(e.target.value);
+                    document.getElementById('speedValue').textContent = (2100/this.speed).toFixed(1) + "x";
+                    if (!this.isPaused && this.gameLoop) {
+                        clearInterval(this.gameLoop);
+                        this.gameLoop = setInterval(() => this.startBattlePhase(), this.speed);
+                    }
+                });
+                
+                // Kein automatischer Neustart bei Resize mehr!
+                // Nur CSS Anpassungen passieren automatisch via Media Queries
+            }
+        }
+        
+        let game;
+
+        function newGameAndStart() {
+            if (game && game.gameLoop) clearInterval(game.gameLoop);
+            
+            // Sidebar auf Mobile schließen beim Start
+            if (window.innerWidth <= 768) {
+                document.getElementById('sidebar').classList.remove('open');
+            }
+
+            game = new AntEmpireGame();
+            game.generateEmpires();
+            game.gameLoop = setInterval(() => game.startBattlePhase(), game.speed);
+            game.isPaused = false;
+            document.getElementById('pauseBtn').textContent = 'Pause';
+        }
+        
+        function togglePause() {
+            if (!game) return;
+            game.isPaused = !game.isPaused;
+            const btn = document.getElementById('pauseBtn');
+            
+            if (game.isPaused) {
+                clearInterval(game.gameLoop);
+                btn.textContent = 'Weiter';
+                btn.classList.replace('btn-secondary', 'btn-primary');
+            } else {
+                game.gameLoop = setInterval(() => game.startBattlePhase(), game.speed);
+                btn.textContent = 'Pause';
+                btn.classList.replace('btn-primary', 'btn-secondary');
+            }
+        }
+        
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.toggle('open');
+        }
+        
+        function toggleSound() {
+            if (game) {
+                game.soundEnabled = !game.soundEnabled;
+                const btn = document.getElementById('soundToggle');
+                btn.textContent = game.soundEnabled ? '🔊' : '🔇';
+                btn.classList.toggle('muted', !game.soundEnabled);
+            }
+        }
+        
+        function dismissPopupAndStartGame() {
+            document.getElementById('initialPopup').style.display = 'none';
+            // Spielinstanz erstellen
+            game = new AntEmpireGame();
+            // Audio Context freigeben (User Interaktion)
+            game.resumeAudio();
+            // Spiel starten
+            newGameAndStart();
+        }
+
+        // Initialer Aufruf
+        window.addEventListener('load', () => {
+            // Popup ist per default sichtbar
+        });
+    </script>
+</body>
+</html>
