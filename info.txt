@@ -1,0 +1,5 @@
+Bei "Ameisen-Imperium" handelt es sich um eine strategische Simulation, die zum Beobachten und Entspannen gedacht ist. Du greifst nicht aktiv in das Geschehen ein, sondern verfolgst, wie verschiedene Ameisenvölker um die Vorherrschaft auf einer prozedural generierten Weltkarte kämpfen.
+
+Zu Beginn wird eine Karte mit unterschiedlichen Terrains wie Bergen, Wüsten oder Wäldern erstellt. Darauf starten mehrere farblich gekennzeichnete Ameisen-Imperien, jedes mit einer eigenen Hauptstadt. Die Völker expandieren automatisch in neutrale Gebiete und führen Kämpfe gegeneinander. Der Erfolg im Kampf hängt von Faktoren wie der Größe des Imperiums, der Entfernung zur Hauptstadt und den Boni des jeweiligen Terrains ab.
+
+Du kannst die Geschwindigkeit der Simulation anpassen, das Spiel pausieren, speichern, laden oder eine neue Welt generieren. Ziel ist es, zu beobachten, welches Imperium sich am Ende durchsetzt und die Welt erobert.
